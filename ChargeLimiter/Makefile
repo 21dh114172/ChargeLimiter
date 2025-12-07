@@ -1,4 +1,3 @@
-export THEOS = /opt/theos
 export THEOS_DEVICE_IP=127.0.0.1
 export THEOS_DEVICE_PORT=22
 ARCHS=arm64
