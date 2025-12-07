@@ -16,10 +16,11 @@ jobs:
         with:
           submodules: recursive
 
+      
       # Step 2: Install Dependencies
       - name: Install Dependencies
         run: |
-          brew install make ldid
+          brew install make ldid dpkg
 
       # Step 3: Set PATH environment variable
       - name: Set PATH environment variable
