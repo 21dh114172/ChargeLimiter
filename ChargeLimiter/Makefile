@@ -1,6 +1,7 @@
 export THEOS = /Users/runner/work/ChargeLimiter/ChargeLimiter/theos
 export THEOS_DEVICE_IP=127.0.0.1
 export THEOS_DEVICE_PORT=22
+export SDKVERSION=12.4
 ARCHS=arm64
 
 _THEOS_PLATFORM_DPKG_DEB=dpkg-deb
