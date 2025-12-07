@@ -31,7 +31,6 @@ jobs:
 
       - name: Build package
         run: |
-          ls -F /opt/theos
           echo $THEOS
           echo $THEOS_MAKE_PATH
           cd ./ChargeLimiter
