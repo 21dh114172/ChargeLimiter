@@ -1,44 +1,68 @@
-name: CI
+name: Build ChargeLimiter
 
 on: [push]
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest]
+    name: Build ChargeLimiter
+    runs-on: macos-latest
+    permissions:
+      contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      # Step 1: Checkout the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
-      - name: Check cache
+      # Step 2: Install Dependencies
+      - name: Install Dependencies
         run: |
-          echo upstream_heads=`git ls-remote https://github.com/theos/theos | head -n 1 | cut -f 1`-`git ls-remote https://github.com/theos/sdks | head -n 1 | cut -f 1` >> $GITHUB_ENV
+          brew install make ldid
 
-      - name: Use cache
-        id: cache
+      # Step 3: Set PATH environment variable
+      - name: Set PATH environment variable
+        run: echo "$(brew --prefix make)/libexec/gnubin" >> $GITHUB_PATH
+
+      # Step 4: Cache Theos
+      - name: Cache Theos
+        id: theos
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/theos
-          key: ${{ runner.os }}-${{ env.upstream_heads }}
+          path: theos/
+          key: theos-cache-${{ runner.os }}
+          restore-keys: theos-cache-
 
-      - name: Prepare Theos
-        # Don't use @main in production, this repo is specifically for testing it.
-        uses: Randomblock1/theos-action@main
-
-      - name: Build package
+      # Step 5: Setup Theos if not cached
+      - name: Setup Theos
+        if: steps.theos.outputs.cache-hit != 'true'
         run: |
-          echo $THEOS
-          echo $THEOS_MAKE_PATH
-          cd ./ChargeLimiter
-          rm -f packages/*
-          make package FINALPACKAGE=1
+          git clone --recursive https://github.com/theos/theos.git theos
+          cd theos
+          git submodule update --init --recursive
 
-      - name: Upload package
+      # Step 6: Download iOS SDK
+      - name: Download iOS SDK
+        if: steps.theos.outputs.cache-hit != 'true'
+        run: |
+          git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/theos/sdks/
+          cd sdks
+          git sparse-checkout set --no-cone iPhoneOS12.4.sdk
+          git checkout
+          mv *.sdk ../theos/sdks
+
+      # Step 7: Build ChargeLimiter
+      - name: Build ChargeLimiter
+        run: |
+          cd ChargeLimiter
+          make clean package FINALPACKAGE=1
+        env:
+          THEOS: ${{ github.workspace }}/theos
+
+      # Step 8: Upload the built package
+      - name: Upload Package
         uses: actions/upload-artifact@v4
         with:
-          name: "Package built by ${{ matrix.os }}"
-          path: ${{ github.workspace }}/packages/*.deb
+          name: ChargeLimiter
+          path: ChargeLimiter/packages/*.deb
